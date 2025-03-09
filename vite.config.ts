@@ -35,7 +35,16 @@ export default defineConfig({
        * Include 'example-dep' in the array below.
        * @see https://vitejs.dev/config/dep-optimization-options
        */
-      include: [],
+      include: [
+        'prop-types',
+        'matchmediaquery',
+        'use-mobile-detect-hook',
+        'react-device-detect',
+        'react-range-slider-input',
+        'lodash.sortby',
+        'lodash.isequal',
+        'lodash.uniqby',
+      ],
     },
   },
 });

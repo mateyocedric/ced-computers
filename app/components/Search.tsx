@@ -115,7 +115,7 @@ export function SearchResults({
   }
   const keys = Object.keys(results) as Array<keyof typeof results>;
   return (
-    <div>
+    <div className="bg-red-500">
       {results &&
         keys.map((type) => {
           const resourceResults = results[type];
@@ -180,6 +180,7 @@ function SearchResultsProductsGrid({
                       data={product.variants.nodes[0].image}
                       alt={product.title}
                       width={50}
+                      // height={50}
                     />
                   )}
                   <div>
@@ -276,7 +277,7 @@ type SearchFromProps = {
 export function PredictiveSearchForm({
   action,
   children,
-  className = 'predictive-search-form',
+  className,
   ...props
 }: SearchFromProps) {
   const params = useParams();
@@ -334,17 +335,30 @@ export function PredictiveSearchResults() {
     window.location.href = event.currentTarget.href;
   }
 
-  if (state === 'loading') {
-    return <div>Loading...</div>;
-  }
+  // if (state === 'loading') {
+  //   return (
+  //     <div
+  //       className="bg-white shadow-lg rounded-lg p-4 mt-5 w-5/12"
+  //       style={{zIndex: 9999}}
+  //     >
+  //       <div className="flex justify-center items-center p-4">
+  //         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+  //         <span className="ml-2 text-blue-500">Loading...</span>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (!totalResults) {
     return <NoPredictiveSearchResults searchTerm={searchTerm} />;
   }
 
   return (
-    <div className="predictive-search-results">
-      <div>
+    <div
+      className="bg-white shadow-lg rounded-lg p-4 mt-5 lg:w-5/12"
+      style={{zIndex: 9999}}
+    >
+      <div className="space-y-4">
         {results.map(({type, items}) => (
           <PredictiveSearchResult
             goToSearchResult={goToSearchResult}
@@ -356,7 +370,11 @@ export function PredictiveSearchResults() {
         ))}
       </div>
       {searchTerm.current && (
-        <Link onClick={goToSearchResult} to={`/search?q=${searchTerm.current}`}>
+        <Link
+          onClick={goToSearchResult}
+          to={`/search?q=${searchTerm.current}`}
+          className="block mt-4 text-center text-blue-500 hover:text-blue-700"
+        >
           <p>
             View all results for <q>{searchTerm.current}</q>
             &nbsp; →
@@ -376,9 +394,14 @@ function NoPredictiveSearchResults({
     return null;
   }
   return (
-    <p>
-      No results found for <q>{searchTerm.current}</q>
-    </p>
+    <div
+      className="bg-white shadow-lg rounded-lg p-4 mt-5 lg:w-5/12"
+      style={{zIndex: 9999}}
+    >
+      <p>
+        No results found for <q>{searchTerm.current}</q>
+      </p>
+    </div>
   );
 }
 
@@ -401,7 +424,7 @@ function PredictiveSearchResult({
   }&type=${pluralToSingularSearchType(type)}`;
 
   return (
-    <div className="predictive-search-result" key={type}>
+    <div key={type}>
       <Link prefetch="intent" to={categoryUrl} onClick={goToSearchResult}>
         <h5>{isSuggestions ? 'Suggestions' : type}</h5>
       </Link>
@@ -424,7 +447,7 @@ type SearchResultItemProps = Pick<SearchResultTypeProps, 'goToSearchResult'> & {
 
 function SearchResultItem({goToSearchResult, item}: SearchResultItemProps) {
   return (
-    <li className="predictive-search-result-item" key={item.id}>
+    <li key={item.id}>
       <Link onClick={goToSearchResult} to={item.url}>
         {item.image?.url && (
           <Image

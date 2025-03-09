@@ -80,7 +80,7 @@ function SearchAside() {
                 name="q"
                 onChange={fetchResults}
                 onFocus={fetchResults}
-                placeholder="Search"
+                placeholder="Searsssch"
                 ref={inputRef}
                 type="search"
               />

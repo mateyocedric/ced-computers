@@ -6,6 +6,7 @@ import {
   Image,
   Money,
 } from '@shopify/hydrogen';
+import {SidebarDemo} from '~/components/CollectionLayout';
 import type {ProductItemFragment} from 'storefrontapi.generated';
 import {useVariantUrl} from '~/lib/variants';
 
@@ -27,19 +28,31 @@ export async function loader(args: LoaderFunctionArgs) {
  * Load data necessary for rendering content above the fold. This is the critical data
  * needed to render the page. If it's unavailable, the whole page should 400 or 500 error.
  */
-async function loadCriticalData({context, request}: LoaderFunctionArgs) {
-  const {storefront} = context;
-  const paginationVariables = getPaginationVariables(request, {
-    pageBy: 8,
-  });
+// async function loadCriticalData({context, request}: LoaderFunctionArgs) {
+//   const {storefront} = context;
+//   const paginationVariables = getPaginationVariables(request, {
+//     pageBy: 8,
+//   });
 
-  const [{products}] = await Promise.all([
-    storefront.query(CATALOG_QUERY, {
-      variables: {...paginationVariables},
-    }),
-    // Add other queries here, so that they are loaded in parallel
+//   const [{products}] = await Promise.all([
+//     storefront.query(CATALOG_QUERY, {
+//       variables: {...paginationVariables},
+//     }),
+//     // Add other queries here, so that they are loaded in parallel
+//   ]);
+//   return {products};
+// }
+
+async function loadCriticalData({context}: LoaderFunctionArgs) {
+  const [collectionsResponse] = await Promise.all([
+    context.storefront.query(COLLECTIONS_QUERY),
   ]);
-  return {products};
+
+  const collections = collectionsResponse.collections;
+
+  return {
+    collectionsData: collections,
+  };
 }
 
 /**
@@ -47,31 +60,52 @@ async function loadCriticalData({context, request}: LoaderFunctionArgs) {
  * fetched after the initial page load. If it's unavailable, the page should still 200.
  * Make sure to not throw any errors here, as it will cause the page to 500.
  */
-function loadDeferredData({context}: LoaderFunctionArgs) {
-  return {};
+
+function loadDeferredData({context, request}: LoaderFunctionArgs) {
+  const paginationVariables = getPaginationVariables(request, {
+    pageBy: 8,
+  });
+
+  const productsData = context.storefront
+    .query(CATALOG_QUERY, {
+      variables: {...paginationVariables},
+    })
+    .catch((error) => {
+      // Log query errors, but don't throw them so the page can still render
+      console.error(error);
+      return null;
+    });
+
+  return {
+    productsData,
+  };
 }
 
 export default function Collection() {
-  const {products} = useLoaderData<typeof loader>();
+  const {collectionsData, productsData} = useLoaderData<typeof loader>();
 
   return (
-    <div className="collection">
-      <h1>Products</h1>
-      <Pagination connection={products}>
-        {({nodes, isLoading, PreviousLink, NextLink}) => (
-          <>
-            <PreviousLink>
-              {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
-            </PreviousLink>
-            <ProductsGrid products={nodes} />
-            <br />
-            <NextLink>
-              {isLoading ? 'Loading...' : <span>Load more ↓</span>}
-            </NextLink>
-          </>
-        )}
-      </Pagination>
-    </div>
+    // <div className="collection">
+      // <h1>Productsss</h1>
+    //   <Pagination connection={products}>
+    //     {({nodes, isLoading, PreviousLink, NextLink}) => (
+    //       <>
+    //         <PreviousLink>
+    //           {isLoading ? 'Loading...' : <span>↑ Load previous</span>}
+    //         </PreviousLink>
+    //         <ProductsGrid products={nodes} />
+    //         <br />
+    //         <NextLink>
+    //           {isLoading ? 'Loading...' : <span>Load more ↓</span>}
+    //         </NextLink>
+    //       </>
+    //     )}
+    //   </Pagination>
+    // </div>
+    <SidebarDemo
+      collectionsData={collectionsData}
+      productsData={productsData}
+    />
   );
 }
 
@@ -133,6 +167,7 @@ const PRODUCT_ITEM_FRAGMENT = `#graphql
     id
     handle
     title
+    availableForSale
     featuredImage {
       id
       altText
@@ -140,12 +175,23 @@ const PRODUCT_ITEM_FRAGMENT = `#graphql
       width
       height
     }
+    description
     priceRange {
       minVariantPrice {
         ...MoneyProductItem
       }
       maxVariantPrice {
         ...MoneyProductItem
+      }
+    }
+    compareAtPriceRange {
+      maxVariantPrice {
+        currencyCode
+        amount
+      }
+      minVariantPrice {
+        currencyCode
+        amount
       }
     }
     variants(first: 1) {
@@ -157,6 +203,27 @@ const PRODUCT_ITEM_FRAGMENT = `#graphql
       }
     }
   }
+` as const;
+
+const COLLECTIONS_QUERY = `#graphql
+fragment Collections on Collection {
+  id
+  title
+  handle
+}
+
+query Collections($country: CountryCode, $language: LanguageCode) @inContext(country: $country, language: $language) {
+  collections(
+    first: 100
+    sortKey: UPDATED_AT
+    reverse: true
+    query: "NOT title:'MSI' AND NOT title:'AMD' AND NOT title:'Intel' AND NOT title:'Featured Collection' AND NOT title:'Top Sellers' AND NOT title:'New Arrivals'"
+  ) {
+    nodes {
+      ...Collections
+    }
+  }
+}
 ` as const;
 
 // NOTE: https://shopify.dev/docs/api/storefront/2024-01/objects/product
@@ -179,7 +246,9 @@ const CATALOG_QUERY = `#graphql
         startCursor
         endCursor
       }
+      
     }
+    
   }
   ${PRODUCT_ITEM_FRAGMENT}
 ` as const;
